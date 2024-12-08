@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 export default function ProfilePage () {
@@ -9,6 +10,7 @@ export default function ProfilePage () {
     function sideBarSizeHandlerP() {
         setIsCollapsed( !isCollapsed )
     }
+
 
     return (
         <>
@@ -20,7 +22,8 @@ export default function ProfilePage () {
             }
             </div>
             <div>
-                <Taskcard taskName="fake-api" percentageCompletion="78" date="01.01.2025" />
+                <Taskcard 
+                    taskName="fake-api" percentageCompletion="78" date="01.01.2025" />
             </div>
         </div>
         </>
@@ -37,6 +40,13 @@ function Taskcard({
     percentageCompletion : string,
     date : string
 }) {
+
+    const router = useRouter()
+
+    function onClickHandler() {
+        router.push("/dashboard")
+    }
+
     return (
      <>
         <div className="h-[250px] w-[250px] flex flex-col bg-slate-600 rounded-2xl m-10">
@@ -46,6 +56,9 @@ function Taskcard({
             <div className="h-1/3 w-full bg-slate-700 flex justify-between">
                 <div> { percentageCompletion } </div>
                 <div> { date } </div>
+                <button
+                    onClick={ onClickHandler }
+                >Start</button>
             </div>
         </div>
     </>
