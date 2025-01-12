@@ -1,0 +1,183 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ....................................................................................................
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  name           String
+  password       String    // Hashed password
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  // User can create multiple projects
+  ownedProjects  Project[] @relation("ProjectOwner")
+  
+  // User can be a member of multiple projects
+  memberships    ProjectMember[]
+  
+  // Tasks assigned to the user
+}
+
+model Project {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Project owner
+  ownerId     String
+  owner       User      @relation("ProjectOwner", fields: [ownerId], references: [id])
+  
+  // Project members
+  members     ProjectMember[]
+  
+  // Project tasks
+  tasks       Task[]
+}
+
+model ProjectMember {
+  id        String    @id @default(cuid())
+  joinedAt  DateTime  @default(now())
+  role      String    @default("MEMBER") // Could be ADMIN, MEMBER, etc.
+  
+  // Relation to Project
+  projectId String
+  project   Project   @relation(fields: [projectId], references: [id])
+  
+  // Relation to User
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  
+  // Tasks created by this member
+  createdTasks Task[] @relation("TaskCreator")
+
+  assignedTasks  TaskAssignee[]
+
+  
+  @@unique([projectId, userId])
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  status      String    @default("TODO") // TODO, IN_PROGRESS, DONE, etc.
+  dueDate     DateTime?
+  priority    String    @default("MEDIUM") // LOW, MEDIUM, HIGH
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Task creator
+  creatorId   String
+  creator     ProjectMember @relation("TaskCreator", fields: [creatorId], references: [id])
+  
+  // Project the task belongs to
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id])
+  
+  // Parent task (if this is a subtask)
+  parentId    String?
+  parent      Task?     @relation("SubTasks", fields: [parentId], references: [id])
+  
+  // Subtasks
+  subtasks    Task[]    @relation("SubTasks")
+  
+  // Task assignees
+  assignees   TaskAssignee[]
+}
+
+model TaskAssignee {
+  id        String    @id @default(cuid())
+  assignedAt DateTime @default(now())
+  
+  // Task reference
+  taskId    String
+  task      Task      @relation(fields: [taskId], references: [id])
+  
+  memberId  String
+  member    ProjectMember @relation(fields: [memberId], references: [id])
+
+  @@unique([taskId, memberId])  
+  
+}
+
+// .............................................................................................
+
+
+
+// model User {
+//   id           Int           @id @default(autoincrement())
+//   email        String        @unique
+//   name         String
+//   projects     Project[]     @relation("ProjectOwner")
+//   memberships  ProjectMember[]
+//   createdAt    DateTime      @default(now())
+//   updatedAt    DateTime      @updatedAt
+// }
+
+// model Project {
+//   id           Int           @id @default(autoincrement())
+//   name         String
+//   description  String?
+//   ownerId      Int
+//   owner        User          @relation("ProjectOwner", fields: [ownerId], references: [id])
+//   members      ProjectMember[]
+//   tasks        Task[]
+//   createdAt    DateTime      @default(now())
+//   updatedAt    DateTime      @updatedAt
+// }
+
+// model ProjectMember {
+//   id        Int      @id @default(autoincrement())
+//   projectId Int
+//   userId    Int
+//   project   Project  @relation(fields: [projectId], references: [id])
+//   user      User     @relation(fields: [userId], references: [id])
+//   tasks     Task[]
+//   assignedTasks Task[] @relation("AssignedTasks")
+//   createdAt DateTime @default(now())
+
+//   @@unique([projectId, userId]) // A user can only be a member of a project once
+// }
+
+// model Task {
+//   id          Int           @id @default(autoincrement())
+//   title       String
+//   description String?
+//   projectId   Int
+//   assignedTo  ProjectMember? @relation("AssignedTasks", fields: [assignedToId], references: [id])
+//   assignedToId Int?
+//   project     Project        @relation(fields: [projectId], references: [id])
+//   subtasks    Subtask[]
+//   createdBy   ProjectMember  @relation(fields: [createdById], references: [id])
+//   createdById Int
+//   createdAt   DateTime       @default(now())
+//   updatedAt   DateTime       @updatedAt
+// }
+
+// model Subtask {
+//   id          Int       @id @default(autoincrement())
+//   title       String
+//   description String?
+//   taskId      Int
+//   task        Task      @relation(fields: [taskId], references: [id])
+//   assignedTo  ProjectMember? @relation("SubtaskAssignees", fields: [assignedToId], references: [id])
+//   assignedToId Int?
+//   createdAt   DateTime  @default(now())
+//   updatedAt   DateTime  @updatedAt
+// }
